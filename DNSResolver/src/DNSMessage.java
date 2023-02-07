@@ -107,7 +107,7 @@ public class DNSMessage {
     public static void writeDomainName(ByteArrayOutputStream byteArrOutStream, HashMap<String,Integer> domainLocations, ArrayList<String> domainPieces) {
         try {
             String domainName = joinDomainName(domainPieces);
-            int domainLocation = domainLocations.get(domainName);
+            //int domainLocation = domainLocations.get(domainName);
             byteArrOutStream.write(domainName.getBytes());
         }
         catch (Exception ex) {

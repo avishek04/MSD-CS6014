@@ -45,7 +45,8 @@ public class DNSQuestion {
     public ArrayList<String> domainNameArr = new ArrayList<>();
 
     public String toString() {
-        return domainNameArr.stream().map(Object::toString).collect(Collectors.joining());
+        return DNSMessage.joinDomainName(domainNameArr);
+//        return domainNameArr.stream().map(Object::toString).collect(Collectors.joining());
     }
 
     @Override
