@@ -33,8 +33,8 @@ public class DNSMessage {
             if (!dnsMessage.dnsHeader.isQuery && dnsMessage.dnsHeader.answerCount > 0) {
                 dnsMessage.dnsAnswers = new DNSRecord[dnsMessage.dnsHeader.answerCount];
 
-                for (DNSRecord dnsRecord: dnsMessage.dnsAnswers) {
-                    dnsRecord = DNSRecord.decodeRecord(messageStream, dnsMessage);
+                for (int i = 0; i < dnsMessage.dnsHeader.answerCount; i++) {
+                    dnsMessage.dnsAnswers[i] = DNSRecord.decodeRecord(messageStream, dnsMessage);
                 }
             }
 

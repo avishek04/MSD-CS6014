@@ -20,7 +20,7 @@ public class DNSRecord {
             dnsRecord.rData = inStream.readNBytes(dnsRecord.rOctetLength);
 
             for (int i = 0; i < dnsRecord.rOctetLength; i++) {
-                dnsRecord.ipAddr += Integer.toString(dnsRecord.rData[i]);
+                dnsRecord.ipAddr += Integer.toString(dnsRecord.rData[i] & 0xFF);
                 if (i < dnsRecord.rOctetLength - 1) {
                     dnsRecord.ipAddr += ".";
                 }

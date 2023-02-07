@@ -8,8 +8,8 @@ public class Main {
     public static boolean isDomainExist() {
         return false;
     }
-    public static void sendResponseBack(DatagramSocket udpSocket, byte[] dataArr, String ip, int port) throws IOException {
-        InetAddress clientAdd = InetAddress.getByName(ip);
+    public static void sendResponseBack(DatagramSocket udpSocket, byte[] dataArr, byte[] ip, int port) throws IOException {
+        InetAddress clientAdd = InetAddress.getByAddress(ip);
         DatagramPacket toClient = new DatagramPacket(dataArr, dataArr.length, clientAdd, port);
         udpSocket.send(toClient);
     }
@@ -22,7 +22,7 @@ public class Main {
             DatagramPacket toGoogle = new DatagramPacket(dataArr, dataArr.length, googleAdd, 53);
             udpSocket.send(toGoogle);
 
-            int length = 1024;
+            int length = 512;
             byte[] dataBuffer = new byte[length];
             DatagramPacket fromGoogle = new DatagramPacket(dataBuffer, length);
             udpSocket.receive(fromGoogle);
@@ -37,12 +37,13 @@ public class Main {
     public static void main(String[] args) {
         try {
             DatagramSocket udpSocket = new DatagramSocket(8053);
-            int length = 1024;
+            int length = 512;
             while (true) {
                 byte[] dataBuffer = new byte[length];
                 DatagramPacket dataPacket = new DatagramPacket(dataBuffer, length);
                 udpSocket.receive(dataPacket);
-                String clientIp = dataPacket.getAddress().toString();
+                //String clientIp = dataPacket.getAddress().toString();
+                byte clientIp[] = { 127, 0, 0, 1 };
                 int clientPort = dataPacket.getPort();
 
                 DNSMessage dnsMessage = DNSMessage.decodeMessage(dataPacket.getData());
