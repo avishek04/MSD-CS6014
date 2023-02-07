@@ -5,9 +5,6 @@ import java.net.*;
 import java.util.Arrays;
 
 public class Main {
-    public static boolean isDomainExist() {
-        return false;
-    }
     public static void sendResponseBack(DatagramSocket udpSocket, byte[] dataArr, byte[] ip, int port) throws IOException {
         InetAddress clientAdd = InetAddress.getByAddress(ip);
         DatagramPacket toClient = new DatagramPacket(dataArr, dataArr.length, clientAdd, port);
@@ -47,8 +44,11 @@ public class Main {
                 int clientPort = dataPacket.getPort();
 
                 DNSMessage dnsMessage = DNSMessage.decodeMessage(dataPacket.getData());
-
-                if (DNSCache.checkDnsCache(dnsMessage.dnsQuestionList[0]) != null) {
+                DNSRecord dnsRecord = DNSCache.checkDnsCache(dnsMessage.dnsQuestionList[0]);
+                if (dnsRecord != null) {
+//                    dnsMessage.dnsAnswers = new DNSRecord[1];
+//                    dnsMessage.dnsAnswers[0] = dnsRecord;
+                    DNSMessage response = DNSMessage.buildResponse(dnsMessage, new DNSRecord[] {dnsRecord});
                     sendResponseBack(udpSocket, dnsMessage.toBytes(), clientIp, clientPort);
                 }
                 else {
