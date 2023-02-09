@@ -101,6 +101,10 @@ public class DNSMessage {
         return outputStream.toByteArray();
     }
 
+    public byte[] toBytesAsIs() {
+        return byteArray;
+    }
+
     //write bytes DNS Question and DNS Header
     //Integer - offset
     //string - domainname

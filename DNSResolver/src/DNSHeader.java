@@ -38,18 +38,24 @@ public class DNSHeader {
     public static DNSHeader buildHeaderForResponse(DNSMessage request, DNSMessage response) {
         DNSHeader responseHeader;
         responseHeader = request.dnsHeader;
-        responseHeader.isQuery = false;
+        responseHeader.isQuery = false; //1
+        responseHeader.authoritativeAns = 0;
         responseHeader.answerCount = 1;
+        responseHeader.byteArray[2] = (byte) 0x81;
+        responseHeader.byteArray[3] = (byte) 0x80;
+        responseHeader.byteArray[5] = (byte) 0x01;
+        responseHeader.byteArray[7] = (byte) 0x01;
         return responseHeader;
     }
 
     public void writeBytes(ByteArrayOutputStream outputStream) {
         try {
-            byte[] outByte = byteArray;
-            outByte[2] = (byte) (byteArray[3] | 0x80);
-            outByte[7] = 0x00;
-            outByte[8] = 0x01;
-            outputStream.write(outByte);
+//            byte[] outByte = byteArray;
+//            outByte[2] = (byte) (byteArray[3] | 0x80);
+//            outByte[7] = 0x00;
+//            outByte[8] = 0x01;
+//            outputStream.write(outByte);
+            outputStream.write(byteArray);
         }
         catch (Exception ex) {
 

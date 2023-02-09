@@ -49,12 +49,12 @@ public class Main {
 //                    dnsMessage.dnsAnswers = new DNSRecord[1];
 //                    dnsMessage.dnsAnswers[0] = dnsRecord;
                     DNSMessage response = DNSMessage.buildResponse(dnsMessage, new DNSRecord[] {dnsRecord});
-                    sendResponseBack(udpSocket, dnsMessage.toBytes(), clientIp, clientPort);
+                    sendResponseBack(udpSocket, response.toBytes(), clientIp, clientPort);
                 }
                 else {
                     DNSMessage googleResponse = sendRequestToGoogle(dataPacket.getData());
                     if (googleResponse.dnsHeader.answerCount > 0) {
-                        sendResponseBack(udpSocket, googleResponse.toBytes(), clientIp, clientPort);
+                        sendResponseBack(udpSocket, googleResponse.toBytesAsIs(), clientIp, clientPort);
                         DNSCache.dnsHash(googleResponse.dnsQuestionList[0], googleResponse.dnsAnswers[0]);
                     }
                 }

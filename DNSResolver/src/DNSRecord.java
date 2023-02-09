@@ -1,13 +1,17 @@
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
 public class DNSRecord {
-    public static DNSRecord decodeRecord(ByteArrayInputStream inStream, DNSMessage dnsMessage) {
+    public static DNSRecord decodeRecord(ByteArrayInputStream ansStream, DNSMessage dnsMessage) {
         DNSRecord dnsRecord = new DNSRecord();
         try {
+            dnsRecord.dnsRecordArr = ansStream.readNBytes(12);
+            ByteArrayInputStream inStream = new ByteArrayInputStream(dnsRecord.dnsRecordArr);
+
             dnsRecord.domainNameArr = inStream.readNBytes(2);
             dnsRecord.domainName = dnsMessage.dnsQuestionList[0].toString();
             dnsRecord.type = inStream.readNBytes(2);
@@ -17,7 +21,7 @@ public class DNSRecord {
                     ((dnsRecord.ttlByte[2] & 0x000000FF) << 8) | ((dnsRecord.ttlByte[3] & 0x000000FF));
             dnsRecord.rOctetLenByte = inStream.readNBytes(2);
             dnsRecord.rOctetLength = (dnsRecord.rOctetLenByte[0] & 0x00FF << 8) | dnsRecord.rOctetLenByte[1];
-            dnsRecord.rData = inStream.readNBytes(dnsRecord.rOctetLength);
+            dnsRecord.rData = ansStream.readNBytes(dnsRecord.rOctetLength);
 
             for (int i = 0; i < dnsRecord.rOctetLength; i++) {
                 dnsRecord.ipAddr += Integer.toString(dnsRecord.rData[i] & 0xFF);
@@ -35,14 +39,16 @@ public class DNSRecord {
 
     public void writeBytes(ByteArrayOutputStream outStream, HashMap<String, Integer> hashMap) {
         try {
-            short offset = hashMap.get(domainName).shortValue();
-            byte[] compress = new byte[2];
-            compress[0] = (byte)((byte)(offset >> 8) & 0xC0);
-            compress[1] = (byte)((offset << 8) >> 8);
-            outStream.write(compress);
-            outStream.write(type);
-            outStream.write(recordClass);
-            outStream.write(ttlByte);
+//            short offset = hashMap.get(domainName).shortValue();
+//            byte[] compress = new byte[2];
+//            compress[0] = (byte)((byte)(offset >> 8) & 0xC0);
+//            compress[1] = (byte)((offset << 8) >> 8);
+//            outStream.write(compress);
+//            outStream.write(type);
+//            outStream.write(recordClass);
+//            outStream.write(ttlByte);
+//            outStream.write(rData);
+            outStream.write(dnsRecordArr);
             outStream.write(rData);
         }
         catch (Exception ex) {
@@ -57,7 +63,7 @@ public class DNSRecord {
     public boolean isExpired() {
         return (dateCreated + ttl) < (System.currentTimeMillis() / 1000);
     }
-
+    public byte[] dnsRecordArr;
     public long dateCreated;
     public String domainName;
     public byte[] domainNameArr;
