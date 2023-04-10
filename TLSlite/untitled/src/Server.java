@@ -39,74 +39,83 @@ public class Server {
     public static void main(String[] args) throws Exception {
         try {
             server = new ServerSocket(8080);
-            Socket socket = server.accept();
-            ObjectOutputStream serverOut = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream serverIn = new ObjectInputStream(socket.getInputStream());
 
-            //step-1 - receive
-            clientNonce = (byte[]) serverIn.readObject();
+            while (true) {
+                Socket socket = server.accept();
+                ObjectOutputStream serverOut = new ObjectOutputStream(socket.getOutputStream());
+                ObjectInputStream serverIn = new ObjectInputStream(socket.getInputStream());
+
+                //step-1 - receive
+                clientNonce = (byte[]) serverIn.readObject();
 //            messages.write(clientNonce);
 
-            //step-2 - send
-            CertificateFactory serverCF = CertificateFactory.getInstance("X.509");
-            serverCertificate = serverCF.generateCertificate(new FileInputStream("CASignedServerCertificate.pem")); //DATA 1
-            serverOut.writeObject(serverCertificate);
+                //step-2 - send
+                CertificateFactory serverCF = CertificateFactory.getInstance("X.509");
+                serverCertificate = serverCF.generateCertificate(new FileInputStream("/Users/avishekchoudhury/MSD-CS6014/MSD-CS6014/TLSlite/CASignedServerCertificate.pem")); //DATA 1
+                serverOut.writeObject(serverCertificate);
 
-            SecureRandom secureRandom = new SecureRandom();
-            secureRandom.nextBytes(dhPrivateKey.toByteArray());
-            dhPublicKey =  g.modPow(dhPrivateKey, N); //DATA 2
-            serverOut.writeObject(dhPublicKey);
+                SecureRandom secureRandom = new SecureRandom();
+                dhPrivateKey = new BigInteger(secureRandom.generateSeed(128));
+                dhPublicKey =  g.modPow(dhPrivateKey, N); //DATA 2
+                serverOut.writeObject(dhPublicKey);
 
-            String serverPvtKeyFile = "serverPrivateKey.der";
-            Path path = Paths.get(serverPvtKeyFile);
-            byte[] serverPvtKeyArr = Files.readAllBytes(path);
-            PKCS8EncodedKeySpec encodedServerPvtKey = new PKCS8EncodedKeySpec(serverPvtKeyArr);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            privateKey = keyFactory.generatePrivate(encodedServerPvtKey);
+                String serverPvtKeyFile = "/Users/avishekchoudhury/MSD-CS6014/MSD-CS6014/TLSlite/serverPrivateKey.der";
+                Path path = Paths.get(serverPvtKeyFile);
+                byte[] serverPvtKeyArr = Files.readAllBytes(path);
+                PKCS8EncodedKeySpec encodedServerPvtKey = new PKCS8EncodedKeySpec(serverPvtKeyArr);
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                privateKey = keyFactory.generatePrivate(encodedServerPvtKey);
 
-            Signature serverSignature = Signature.getInstance("SHA256WithRSA");
-            serverSignature.initSign(privateKey);
-            serverSignature.update(dhPublicKey.toByteArray());
-            signedDHPublicKey = new BigInteger(serverSignature.sign());
-            serverOut.writeObject(signedDHPublicKey);
+                Signature serverSignature = Signature.getInstance("SHA256WithRSA");
+                serverSignature.initSign(privateKey);
+                serverSignature.update(dhPublicKey.toByteArray());
+                signedDHPublicKey = new BigInteger(serverSignature.sign());
+                serverOut.writeObject(signedDHPublicKey);
 
-            //step-3 receive
-            clientCertificate = (Certificate) serverIn.readObject();
-            clientDHPublicKey = (BigInteger) serverIn.readObject();
-            signedClientDHPublicKey = (BigInteger) serverIn.readObject();
+                //step-3 receive
+                clientCertificate = (Certificate) serverIn.readObject();
+                clientDHPublicKey = (BigInteger) serverIn.readObject();
+                signedClientDHPublicKey = (BigInteger) serverIn.readObject();
 
-            //step-4 form shared secret key
-            sharedSecretKey = clientDHPublicKey.modPow(dhPrivateKey, N);
+                //step-4 form shared secret key
+                sharedSecretKey = clientDHPublicKey.modPow(dhPrivateKey, N);
 
-            //step-5 derive 6 session keys
-            byte[] prk = Main.HMAC(clientNonce, sharedSecretKey.toByteArray());
-            serverEncrypt = Main.hdkfExpand(prk, "server encrypt".getBytes());
-            clientEncrypt = Main.hdkfExpand(serverEncrypt, "client encrypt".getBytes());
-            serverMac = Main.hdkfExpand(clientEncrypt, "server MAC".getBytes());
-            clientMac = Main.hdkfExpand(serverMac, "client MAC".getBytes());
-            serverIV = Main.hdkfExpand(clientMac, "server IV".getBytes());
-            clientIV = Main.hdkfExpand(serverIV, "client IV".getBytes());
+                //step-5 derive 6 session keys
+                byte[] prk = Main.HMAC(clientNonce, sharedSecretKey.toByteArray());
+                serverEncrypt = Main.hdkfExpand(prk, "server encrypt".getBytes());
+                clientEncrypt = Main.hdkfExpand(serverEncrypt, "client encrypt".getBytes());
+                serverMac = Main.hdkfExpand(clientEncrypt, "server MAC".getBytes());
+                clientMac = Main.hdkfExpand(serverMac, "client MAC".getBytes());
+                serverIV = Main.hdkfExpand(clientMac, "server IV".getBytes());
+                clientIV = Main.hdkfExpand(serverIV, "client IV".getBytes());
 
-            //step-6 All handshake message MAC
-            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-            outStream.write(clientNonce);
-            outStream.write(serverCertificate.getEncoded());
-            outStream.write(dhPublicKey.toByteArray());
-            outStream.write(signedDHPublicKey.toByteArray());
-            outStream.write(clientCertificate.getEncoded());
-            outStream.write(clientDHPublicKey.toByteArray());
-            outStream.write(signedClientDHPublicKey.toByteArray());
+                //step-6 All handshake message MAC
+                ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+                outStream.write(clientNonce);
+                outStream.write(serverCertificate.getEncoded());
+                outStream.write(dhPublicKey.toByteArray());
+                outStream.write(signedDHPublicKey.toByteArray());
+                outStream.write(clientCertificate.getEncoded());
+                outStream.write(clientDHPublicKey.toByteArray());
+                outStream.write(signedClientDHPublicKey.toByteArray());
 
-            byte[] handshakeMsg = outStream.toByteArray();
-            byte[] finalMAC = Main.HMAC(serverMac, handshakeMsg);
-            serverOut.writeObject(finalMAC);
+                byte[] handshakeMsg = outStream.toByteArray();
+                byte[] finalMAC = Main.HMAC(serverMac, handshakeMsg);
+                serverOut.writeObject(finalMAC);
 
-            byte[] finalClientMAC = (byte[]) serverIn.readObject();
-            byte[] clientMsg = (byte[]) serverIn.readObject();
-            byte[] decrypt = Main.decrypt(clientEncrypt, clientMsg, clientIV);
-            if (Main.isAuthentic(clientMac, decrypt)) {
-                String message = Main.getMessage(decrypt);
-                System.out.println(message);
+                byte[] finalClientMAC = (byte[]) serverIn.readObject();
+
+                byte[] clientMsg = (byte[]) serverIn.readObject();
+                byte[] decrypt = Main.decrypt(clientEncrypt, clientMsg, clientIV);
+                if (Main.isAuthentic(clientMac, decrypt)) {
+                    String message1 = Main.getMessage(decrypt);
+                    System.out.println(message1);
+
+                    String message2 = "From Server: Message Received";
+                    byte[] msgMAC = Main.concatenate(message2.getBytes(), Main.HMAC32Bit(serverMac, message2.getBytes()));
+                    byte[] cipherTxt = Main.encrypt(msgMAC, serverEncrypt, serverIV);
+                    serverOut.writeObject(cipherTxt);
+                }
             }
         }
         catch (Exception e) {

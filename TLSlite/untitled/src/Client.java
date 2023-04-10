@@ -54,7 +54,7 @@ public class Client {
             //step-1 - send
             SecureRandom secureRandom = new SecureRandom();
             secureRandom.nextBytes(nonce);
-            clientOut.write(nonce);
+            clientOut.writeObject(nonce);
 //            messages = nonce;
 
             //step-2 - receive
@@ -64,14 +64,15 @@ public class Client {
 
             //step-3 - send
             CertificateFactory clientCF = CertificateFactory.getInstance("X.509");
-            clientCertificate = clientCF.generateCertificate(new FileInputStream("CASignedClientCertificate.pem")); //data1
+            clientCertificate = clientCF.generateCertificate(new FileInputStream("/Users/avishekchoudhury/MSD-CS6014/MSD-CS6014/TLSlite/CASignedClientCertificate.pem")); //data1
             clientOut.writeObject(clientCertificate);
 
-            secureRandom.nextBytes(dhPrivateKey.toByteArray());
+//            secureRandom.nextBytes(dhPrivateKey.toByteArray());
+            dhPrivateKey = new BigInteger(secureRandom.generateSeed(128));
             dhPublicKey = g.modPow(dhPrivateKey, N); //DATA 2
             clientOut.writeObject(dhPublicKey);
 
-            String clientPvtKeyFile = "clientPrivateKey.der";
+            String clientPvtKeyFile = "/Users/avishekchoudhury/MSD-CS6014/MSD-CS6014/TLSlite/clientPrivateKey.der";
             Path path = Paths.get(clientPvtKeyFile);
             byte[] clientPvtKeyArr = Files.readAllBytes(path);
             PKCS8EncodedKeySpec encodedServerPvtKey = new PKCS8EncodedKeySpec(clientPvtKeyArr);
@@ -112,10 +113,18 @@ public class Client {
             byte[] finalMAC = Main.HMAC(clientMac, handshakeMsg);
             clientOut.writeObject(finalMAC);
 
-            String message = "Hello World";
-            byte[] msgMAC = Main.HMAC(clientMac, message.getBytes());
-            byte[] cipherTxt = Main.encrypt(clientEncrypt, msgMAC, clientIV);
+            String message1 = "From Client: Hello World";
+            byte[] msgMAC = Main.concatenate(message1.getBytes(), Main.HMAC32Bit(clientMac, message1.getBytes()));
+            byte[] cipherTxt = Main.encrypt(msgMAC, clientEncrypt, clientIV);
             clientOut.writeObject(cipherTxt);
+
+            byte[] serverMsg = (byte[]) clientIn.readObject();
+            byte[] decrypt = Main.decrypt(serverEncrypt, serverMsg, serverIV);
+
+            if (Main.isAuthentic(serverMac, decrypt)) {
+                String message2 = Main.getMessage(decrypt);
+                System.out.println(message2);
+            }
         }
     }
 }
